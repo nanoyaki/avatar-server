@@ -37,6 +37,104 @@
           avatar-server = default;
         };
 
+        flake.nixosModules = rec {
+          default =
+            {
+              lib,
+              pkgs,
+              config,
+              ...
+            }:
+
+            let
+              inherit (lib)
+                mkEnableOption
+                mkPackageOption
+                mkOption
+                types
+                mkIf
+                mkDefault
+                ;
+
+              cfg = config.services.tangled.avatar-server;
+            in
+
+            {
+              options.services.tangled.avatar-server = {
+                enable = mkEnableOption "avatar-server";
+
+                package = mkPackageOption (withSystem pkgs.stdenv.hostPlatform.system (
+                  { config, ... }: config.packages
+                )) "avatar-server" { };
+
+                environmentFile = mkOption {
+                  description = "A file containing the {env}`AVATAR_SHARED_SECRET` environment variable";
+                  example = "/run/secrets/rendered/avatar-server.env";
+                  type = types.externalPath;
+                };
+
+                port = mkOption {
+                  description = "The port the server listens on";
+                  example = 8080;
+                  default = 3000;
+                  type = types.port;
+                };
+              };
+
+              config = mkIf cfg.enable {
+                systemd.services.avatar-server = {
+                  description = "Avatar server for Tangled";
+
+                  wantedBy = [ "multi-user.target" ];
+                  after = [ "network.target" ];
+
+                  environment = {
+                    PORT = toString cfg.port;
+                    CACHE_DIR = mkDefault "/var/cache/avatar-server";
+                  };
+
+                  serviceConfig = {
+                    Type = "simple";
+                    ExecStart = lib.getExe cfg.package;
+                    Restart = "on-failure";
+                    CacheDirectory = mkDefault "avatar-server";
+                    EnvironmentFile = cfg.environmentFile;
+
+                    # Hardening
+                    DynamicUser = true;
+                    CapabilityBoundingSet = "";
+                    SystemCallFilter = [ "@system-service" ];
+
+                    NoNewPrivileges = true;
+                    ProtectClock = true;
+                    RestrictNamespaces = true;
+                    RestrictSUIDSGID = true;
+                    LockPersonality = true;
+                    RestrictRealtime = true;
+                    RestrictAddressFamilies = [
+                      "AF_INET"
+                      "AF_INET6"
+                    ];
+                    MemoryDenyWriteExecute = true;
+                    ProtectHostname = true;
+
+                    ProtectSystem = "strict";
+                    PrivateTmp = true;
+                    ProtectHome = true;
+                    PrivateDevices = true;
+                    ProtectControlGroups = true;
+                    ProtectKernelTunables = true;
+                    ProtectKernelModules = true;
+                    ProtectKernelLogs = true;
+                    ProtectProc = "invisible";
+                  };
+                };
+              };
+            };
+
+          avatar-server = default;
+        };
+
         perSystem =
           {
             lib,
