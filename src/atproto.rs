@@ -69,19 +69,11 @@ impl Proto {
         let did = if actor.starts_with("did:") {
             actor.to_string()
         } else {
-            let url = format!("https://{}/.well-known/atproto-did", actor);
-            let did = self
-                .client
-                .get(url)
-                .send()
-                .ok()
-                .and_then(|res| res.text().ok())
-                .or(self.resolve_atproto_record(actor));
+            let did = self.resolve_atproto_record(actor)
+                .or(self.resolve_wellknown_atproto(actor));
 
             did?
         };
-
-        println!("Resolving {:?}", did);
 
         let doc_url = if did.starts_with("did:web:") {
             format!(
@@ -105,8 +97,6 @@ impl Proto {
             .find(|s| s.service_type == "AtprotoPersonalDataServer")?
             .service_endpoint;
 
-        println!("PDS: {:?}", pds);
-
         Some((did, pds))
     }
 
@@ -120,6 +110,17 @@ impl Proto {
         let avatar = res.bytes().ok()?.into();
 
         Some((avatar, content_type))
+    }
+
+    fn resolve_wellknown_atproto(&self, actor: &str) -> Option<String> {
+        let url = format!("https://{}/.well-known/atproto-did", actor);
+
+        self
+            .client
+            .get(url)
+            .send()
+            .ok()
+            .and_then(|res| res.text().ok())
     }
 
     fn resolve_atproto_record(&self, actor: &str) -> Option<String> {

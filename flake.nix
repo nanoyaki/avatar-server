@@ -167,7 +167,7 @@
                   pname = cargoToml.package.name;
                   inherit (cargoToml.package) version;
 
-                  cargoHash = "sha256-2XS97owOxQErQ+a0OSmZBx6XAXxWTzXKrHqgX/KRllw=";
+                  cargoHash = "sha256-oPGegS3+Wb7UztjeEko2Y9slcvnYgFQ2nGIm6uq/sXk=";
 
                   meta = {
                     mainProgram = "avatar-server";
