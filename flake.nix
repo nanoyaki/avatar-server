@@ -6,6 +6,7 @@
     systems.url = "github:nix-systems/default-linux";
 
     treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
